@@ -142,25 +142,24 @@ struct bigBuffer {
 
 template <typename T>
 struct bigVector{
-    size_t maxIndex = 0;
     std::vector<size_t> bufferEndIndex;
     std::vector<bigBuffer> buffers;
     T& operator[](std::size_t idx){
-        while(idx > maxIndex){ //Grow buffer if index is out of range
+        while(idx > bufferEndIndex.back()){ //Grow buffer if index is out of range
             addBuffer();
         }
-        std::vector<size_t>::iterator up;
-        up = std::upper_bound (bufferEndIndex.begin(), bufferEndIndex.end(), idx);
-        size_t bufferIndex = up - bufferEndIndex.begin();
-        return ((T*)buffers[bufferIndex].buffer)[idx - *up];
+        auto up = std::upper_bound (bufferEndIndex.begin(), bufferEndIndex.end(), idx);//go to the first index larger than idx
+        up--;//go to the index before
+        size_t bufferIndex = up - bufferEndIndex.begin();//compute the index
+        return ((T*)buffers[bufferIndex].buffer)[idx - *up];//use the buffer index to select buffer and subtract its starting value from idx
     }
     void addBuffer(){
         bigBuffer buf = new bigBuffer();
-        maxIndex += buf.length/std::max(sizeof(T),std::alignment_of<T>::value);
-        bufferEndIndex.push_back(maxIndex);
+        bufferEndIndex.push_back(bufferEndIndex.back() + buf.length/std::max(sizeof(T),std::alignment_of<T>::value));
         buffers.push_back(buf);
     }
     bigVector(){
+        bufferEndIndex.push_back(0);
         addBuffer();
     }
     ~bigVector(){
@@ -248,6 +247,7 @@ struct manualStack {
     manualStack() { createStack(); }
     ~manualStack() { destroyStack(); }
 };
+
 
 }  // namespace bigBuffer
 
